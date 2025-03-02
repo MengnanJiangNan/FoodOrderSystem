@@ -1,12 +1,19 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect, url_for
 import pandas as pd
 from pathlib import Path
 import os
 from datetime import datetime
+import gradio as gr
+import json
+import numpy as np
 
 app = Flask(__name__)
 USERS_EXCEL_FILE = Path('food_orders.xlsx')
 MENU_EXCEL_FILE = Path('menu_data.xlsx')
+
+# 使用相对路径或绝对路径
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+EXCEL_PATH = os.path.join(BASE_DIR, 'data', 'orders.xlsx')
 
 def init_excel():
     try:
@@ -1201,7 +1208,31 @@ def clean_price(price_str):
     except Exception:
         return 0.0  # 或者其他适当的默认值
 
+# 创建Gradio接口函数
+def get_menu():
+    menu_data = read_menu_excel()
+    return gr.Dataframe(value=menu_data)
+
+def submit_order(user_id, items):
+    # 处理订单逻辑
+    # ...
+    return "订单已提交成功！"
+
+# 构建Gradio界面
+with gr.Blocks() as demo:
+    with gr.Tab("菜单"):
+        gr.Markdown("# 今日菜单")
+        menu_btn = gr.Button("刷新菜单")
+        menu_display = gr.DataFrame()
+        menu_btn.click(get_menu, inputs=None, outputs=menu_display)
+    
+    with gr.Tab("下单"):
+        # 下单界面元素
+        # ...
+
+# Docker环境不需要这个if块，因为启动由Dockerfile控制
 if __name__ == '__main__':
     # 应用启动时初始化
     initialize_app()
+    # 本地开发使用
     app.run(host='0.0.0.0', port=7860, debug=False)

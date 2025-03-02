@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>点餐系统</title>
+    <style>
+        .food-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .food-card { border: 1px solid #ddd; padding: 15px; text-align: center; }
+        .food-image { width: 150px; height: 150px; object-fit: cover; }
+        .summary { margin-top: 30px; padding: 20px; background: #f5f5f5; }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <!-- 用户选择 -->
+        <div v-if="!currentUser">
+            <h3>请选择您的身份</h3>
+            <select v-model="selectedUser" @change="login">
+                <option disabled value="">请选择用户</option>
+                <option v-for="user in users" :value="user.id">{{ user.name }}</option>
+            </select>
+        </div>
+
+        <!-- 点餐界面 -->
+        <div v-else>
+            <h2>欢迎回来，{{ currentUser.name }}！</h2>
+            
+            <!-- 食物列表 -->
+            <div class="food-grid">
+                <div v-for="food in foods" :key="food.id" class="food-card">
+                    <img :src="food.image" class="food-image">
+                    <h3>{{ food.name }}</h3>
+                    <p>¥{{ food.price.toFixed(2) }}</p>
+                    <input type="number" 
+                           v-model.number="food.quantity"
+                           min="0"
+                           @change="updateTotal">
+                </div>
+            </div>
+
+            <!-- 订单汇总 -->
+            <div class="summary">
+                <h3>总金额：¥{{ totalAmount.toFixed(2) }}</h3>
+                <button @click="saveOrder">保存订单</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script>
+        const { createApp } = Vue
+
+        createApp({
+            data() {
+                return {
+                    users: [],
+                    foods: [],
+                    selectedUser: null,
+                    currentUser: null,
+                    totalAmount: 0
+                }
+            },
+            async mounted() {
+                await this.loadUsers();
+                await this.loadFoods();
+            },
+            methods: {
+                async loadUsers() {
+                    this.users = await (await fetch('/api/users')).json();
+                },
+                async loadFoods() {
+                    this.foods = await (await fetch('/api/foods')).json();
+                    this.foods.forEach(f => f.quantity = 0);
+                },
+                async login() {
+                    this.currentUser = this.users.find(u => u.id === this.selectedUser);
+                },
+                updateTotal() {
+                    this.totalAmount = this.foods.reduce((sum, food) => 
+                        sum + (food.price * (food.quantity || 0)), 0);
+                },
+                async saveOrder() {
+                    const orderData = {
+                        user_id: this.currentUser.id,
+                        items: this.foods
+                            .filter(f => f.quantity > 0)
+                            .map(f => ({
+                                food_id: f.id,
+                                quantity: f.quantity
+                            }))
+                    }
+                    
+                    await fetch('/api/orders', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(orderData)
+                    })
+                    
+                    alert('订单保存成功！')
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>

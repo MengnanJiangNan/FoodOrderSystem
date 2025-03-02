@@ -45,5 +45,3 @@ python app.py
 ```
 
 The application will run at http://localhost:5000
-
-## Project Structure

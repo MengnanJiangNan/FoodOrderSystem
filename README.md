@@ -1,60 +1,25 @@
-# Food Order System
+---
+title: Order System
+emoji: 🍽️
+colorFrom: blue
+colorTo: green
+sdk: docker
+sdk_version: "latest"
+app_file: app.py
+pinned: false
+---
 
-A Flask-based food ordering system that allows users to browse menus, select food items, and place orders. The system supports user authentication, menu management, order processing, and more.
+# Order System
 
-## Features
+This is a Flask-based ordering system that provides the following features:
+- Menu viewing
+- User ordering
+- Order management
+- Order history query
 
-- User registration and login
-- Menu browsing and search
-- Shopping cart management
-- Order processing
-- Admin dashboard (menu management, order management)
-- REST API support
+## How to Use
 
-## Environment Setup
-
-### Prerequisites
-
-- Anaconda or Miniconda installed
-- Git installed
-
-### Setup Steps
-
-1. Clone the repository
-
-```bash
-git clone https://github.com/MengnanJiangNan/FoodOrderSystem.git
-cd FoodOrderSystem
-```
-
-2. Create and activate conda environment
-
-```bash
-# Create Python 3.9 environment
-conda create -n menu python=3.9 -y
-
-# Activate environment
-conda activate menu
-```
-
-3. Install dependencies
-
-```bash
-pip install -r requirement.txt
-```
-
-## Starting the Application
-
-```bash
-# Activate environment (if not already activated)
-conda activate menu
-
-# Start the application
-flask run
-# or
-python app.py
-```
-
-The application will run at http://localhost:5000
-
-## Project Structure
+1. Visit the homepage to view the menu
+2. Log in to your user account
+3. Select food items and place orders
+4. Administrators can view all orders in the management interface

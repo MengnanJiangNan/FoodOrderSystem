@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bestellsystem</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        /* 隐藏所有数字输入框的上下箭头 */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="container py-4">
+        <!-- 用户选择界面 -->
+        <div v-if="showUserSelection" class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="mb-0 text-center">Willkommen beim Bestellsystem</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="text-center mb-4">
+                            <p class="mb-1">Organisator: Yanyongfang</p>
+                            <p class="mb-3">Frühstück</p>
+                        </div>
+                        
+                        <h4 class="text-center mb-4">Bitte wählen Sie einen Benutzer</h4>
+                        
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Passwort</label>
+                            <input type="password" class="form-control" id="password" v-model="password" 
+                                  placeholder="Bitte geben Sie das Passwort ein">
+                            <div class="text-danger mt-1" v-if="passwordError">
+                                Falsches Passwort. Bitte versuchen Sie es erneut.
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button v-for="user in users" :key="user.id" 
+                                    class="btn btn-outline-primary btn-lg py-3"
+                                    style="font-size: 0.9rem;"
+                                    @click="checkPasswordAndSelectUser(user)"
+                                    :disabled="!password">
+                                ${user.name}$
+                            </button>
+                        </div>
+                        
+                        <div v-if="users.length === 0" class="alert alert-warning text-center mt-3">
+                            Keine Benutzerdaten vorhanden. Bitte fügen Sie Benutzer in der Datei food_orders.xlsx hinzu
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 主界面 - 当用户已选择 -->
+        <div v-if="!showUserSelection">
+            <!-- 顶部导航栏 -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Willkommen, ${currentUser ? currentUser.name : ''}$</h2>
+                <div>
+                    <button class="btn btn-outline-secondary me-2" @click="backToUserSelection">
+                        Benutzer wechseln
+                    </button>
+                    <button class="btn btn-outline-primary" @click="showAllOrders">
+                        Alle Bestellungen anzeigen
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 菜单和订单区域 -->
+            <div class="row">
+                <!-- 菜单区域 -->
+                <div class="col-md-8">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="mb-0">Menü</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div v-for="food in foods" :key="food.id" class="col-md-4 mb-3">
+                                    <div class="card h-100">
+                                        <img :src="food.image" class="card-img-top" alt="Speisenbild" 
+                                             style="height: 160px; object-fit: cover;" 
+                                             @error="handleImageError($event, food)">
+                                        <div class="card-body d-flex flex-column">
+                                            <h5 class="card-title" style="height: 48px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; font-size: 0.95rem;">${food.name}$</h5>
+                                            <p class="card-text" style="height: 28px;">${food.price}$</p>
+                                            <p class="card-text text-muted small" style="height: 90px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; font-size: 0.8em;">${food.description || ''}$</p>
+                                            <div class="d-flex align-items-center mt-auto">
+                                                <button class="btn btn-sm btn-outline-secondary"
+                                                        @click="food.quantity = Math.max(0, food.quantity - 1); updateTotal()">-</button>
+                                                <input type="number" class="form-control mx-2" 
+                                                       v-model.number="food.quantity"
+                                                       min="0"
+                                                       @change="updateTotal()">
+                                                <button class="btn btn-sm btn-outline-secondary"
+                                                        @click="food.quantity++; updateTotal()">+</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 订单区域 -->
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">Aktuelle Bestellung</h5>
+                        </div>
+                        <div class="card-body">
+                            <div v-if="foods.some(f => f.quantity > 0)">
+                                <ul class="list-group mb-3">
+                                    <li v-for="food in foods.filter(f => f.quantity > 0)" 
+                                        :key="food.id"
+                                        class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div style="width: 65%">
+                                            <span class="d-inline-block text-truncate" style="max-width: 100%;">${food.name}$</span>
+                                            <small class="text-muted d-block">${food.price}$ x ${food.quantity}$</small>
+                                        </div>
+                                        <span style="width: 35%; text-align: right">${calculateItemTotal(food)}$</span>
+                                    </li>
+                                </ul>
+                                <div class="d-flex justify-content-between fw-bold mb-3">
+                                    <span>Gesamtbetrag:</span>
+                                    <span>${formattedTotalAmount}$</span>
+                                </div>
+                                <button class="btn btn-primary w-100" @click="saveOrder">
+                                    Bestellung speichern
+                                </button>
+                            </div>
+                            <div v-else class="text-center text-muted py-3">
+                                Sie haben noch keine Gerichte ausgewählt
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 用户已有订单 -->
+                    <div class="card mt-4" v-if="currentUserOrders.length > 0">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Ihre Bestellhistorie</h5>
+                            <div class="text-end">
+                                <button v-if="orderEdited" class="btn btn-success btn-sm" @click="saveModifiedOrders">
+                                    Speichern
+                                </button>
+                                <button v-if="!isEditingOrders" class="btn btn-outline-primary btn-sm" @click="startEditOrders">
+                                    Bestellung bearbeiten
+                                </button>
+                                <button v-else class="btn btn-outline-secondary btn-sm" @click="cancelEditOrders">
+                                    Abbrechen
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-group">
+                                <li v-for="order in currentUserOrders" 
+                                    :key="order.food_id"
+                                    class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div style="width: 65%">
+                                        <div class="text-truncate">${order.food_name}$</div>
+                                        <small class="text-muted">${order.price}$ x 
+                                            <span v-if="!isEditingOrders">${order.quantity}$</span>
+                                            <div v-else class="input-group input-group-sm mt-1" style="width: 120px;">
+                                                <button class="btn btn-outline-secondary" type="button" 
+                                                        @click="updateOrderQuantity(order, -1)">-</button>
+                                                <input type="number" class="form-control text-center" 
+                                                       v-model.number="order.quantity" min="0" 
+                                                       @change="checkOrderEdited">
+                                                <button class="btn btn-outline-secondary" type="button" 
+                                                        @click="updateOrderQuantity(order, 1)">+</button>
+                                            </div>
+                                        </small>
+                                    </div>
+                                    <span style="width: 35%; text-align: right">${calculateItemSubtotal(order)}$</span>
+                                </li>
+                            </ul>
+                            <div class="d-flex justify-content-between fw-bold mt-3">
+                                <span>Gesamt:</span>
+                                <span>${calculateUserOrdersTotal()}$</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 全部订单对话框 -->
+        <div class="modal fade" :class="{ show: showOrdersModal }" 
+             tabindex="-1" :style="{ display: showOrdersModal ? 'block' : 'none' }">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Alle Bestellungen</h5>
+                        <button type="button" class="btn-close" @click="showOrdersModal = false"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div v-if="loading" class="text-center p-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Wird geladen...</span>
+                            </div>
+                            <div class="mt-2">Bestelldaten werden geladen...</div>
+                        </div>
+                        
+                        <div v-else-if="allOrders.length === 0" class="text-center p-4">
+                            <div class="alert alert-info">Keine Bestelldaten vorhanden</div>
+                        </div>
+                        
+                        <div v-else>
+                            <div v-for="userOrder in allOrders" :key="userOrder.user_id" class="mb-4">
+                                <h5 class="border-bottom pb-2">${userOrder.user_name}$s Bestellung</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th style="width: 40%">Gericht</th>
+                                                <th style="width: 20%">Preis</th>
+                                                <th style="width: 15%">Menge</th>
+                                                <th style="width: 25%">Zwischensumme</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-for="item in userOrder.items" :key="item.food_id">
+                                                <td>${item.food_name}$</td>
+                                                <td>${item.price}$</td>
+                                                <td>${item.quantity}$</td>
+                                                <td>${item.subtotal}$</td>
+                                            </tr>
+                                        </tbody>
+                                        <tfoot>
+                                            <tr class="fw-bold">
+                                                <td colspan="3" class="text-end">Gesamt:</td>
+                                                <td>${formatCurrency(userOrder.total)}$</td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" 
+                                @click="showOrdersModal = false">Schließen</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-backdrop fade show" v-if="showOrdersModal"></div>
+    </div>
+
+    <script>
+        const app = Vue.createApp({
+            delimiters: ['${', '}$'],
+            data() {
+                return {
+                    users: [],
+                    foods: [],
+                    selectedUser: null,
+                    currentUser: null,
+                    showUserSelection: true,
+                    totalAmount: 0,
+                    showOrdersModal: false,
+                    allOrders: [],
+                    loading: false,
+                    currentUserOrders: [],
+                    currentUserTotal: 0,
+                    originalOrders: null,
+                    ordersChanged: false,
+                    orderEdited: false,
+                    isEditingOrders: false,
+                    formattedTotalAmount: '',
+                    password: '',
+                    passwordError: false,
+                }
+            },
+            async mounted() {
+                try {
+                    await this.loadUsers();
+                    await this.loadFoods();
+                } catch (error) {
+                    console.error('Fehler bei der Initialisierung der Daten:', error);
+                }
+            },
+            methods: {
+                async loadUsers() {
+                    try {
+                        console.log("Benutzerliste wird geladen");
+                        const response = await fetch('/api/users');
+                        
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            console.error("Fehler beim Laden der Benutzer:", response.status, errorText);
+                            throw new Error(`Anfrage fehlgeschlagen: ${response.status}`);
+                        }
+                        
+                        const data = await response.json();
+                        console.log('Benutzerdaten geladen:', data);
+                        
+                        this.users = data.users || [];
+                        
+                        // 移除自动选择用户的代码，确保每次都显示用户选择界面
+                        // 清除之前可能存在的用户选择
+                        localStorage.removeItem('selectedUserId');
+                        this.showUserSelection = true;
+                    } catch (error) {
+                        console.error('Fehler beim Laden der Benutzer:', error);
+                        alert('Benutzerliste konnte nicht geladen werden. Bitte aktualisieren Sie die Seite');
+                    }
+                },
+                async loadFoods() {
+                    try {
+                        console.log("Menüdaten werden direkt aus Excel-Datei geladen");
+                        const response = await fetch('/api/menu-from-file');
+                        
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            console.error("Fehler beim Laden des Menüs aus der Excel-Datei:", response.status, errorText);
+                            throw new Error(`Anfrage fehlgeschlagen: ${response.status}`);
+                        }
+                        
+                        let foods;
+                        try {
+                            foods = await response.json();
+                            console.log("Originale Menüdaten aus Excel:", foods);
+                        } catch (parseError) {
+                            console.error("Fehler beim Parsen der Menüdaten:", parseError);
+                            console.log("API-Antworttext:", await response.text());
+                            throw new Error("Fehler beim Parsen der Menüdaten");
+                        }
+                        
+                        if (!foods || !Array.isArray(foods) || foods.length === 0) {
+                            console.error("Excel-Datei enthält keine gültigen Menüdaten");
+                            alert("Keine Menüdaten gefunden. Bitte überprüfen Sie die menu_data.xlsx Datei.");
+                            this.foods = [];
+                            return;
+                        }
+                        
+                        // 确保每个食品项都有quantity字段
+                        this.foods = foods.map(f => {
+                            console.log(`Verarbeite Gericht: ${f.name}, Bildpfad: ${f.image}, ID: ${f.id}`);
+                            
+                            const processedFood = {
+                                ...f,
+                                quantity: 0,
+                                id: Number(f.id || 0),
+                                price: String(f.price || '0'),  // 保持价格的原始字符串格式
+                                name: f.name || 'Unbekanntes Gericht',
+                                image: f.image || '/static/custard_bao.jpg',
+                                description: f.description || ''
+                            };
+                            
+                            console.log(`Verarbeitetes Gericht: ${processedFood.name}, Bildpfad: ${processedFood.image}`);
+                            return processedFood;
+                        });
+                        
+                        console.log("Verarbeitete Menüdaten:", this.foods);
+                    } catch (error) {
+                        console.error('Fehler beim Laden der Menüdaten:', error);
+                        alert("Fehler beim Laden der Menüdaten. Bitte überprüfen Sie die menu_data.xlsx Datei und starten Sie die Anwendung neu.");
+                        this.foods = [];
+                    }
+                },
+                updateTotal() {
+                    let total = 0;
+                    for (const food of this.foods) {
+                        if (food.quantity > 0) {
+                            // 提取价格中的数字部分
+                            const priceStr = String(food.price);
+                            let numericPrice = 0;
+                            
+                            // 尝试提取价格中的数字
+                            const matches = priceStr.match(/(\d+[,.]\d+|\d+)/);
+                            if (matches && matches.length > 0) {
+                                // 将逗号替换为点，以便正确转换为数字
+                                const normalizedPrice = matches[0].replace(',', '.');
+                                numericPrice = parseFloat(normalizedPrice);
+                            }
+                            
+                            total += numericPrice * food.quantity;
+                        }
+                    }
+                    // 保存数值到totalAmount，用于计算
+                    this.totalAmount = total;
+                    // 修改显示用的totalAmount格式
+                    this.formattedTotalAmount = `€${total.toFixed(2).replace('.', ',')}`;
+                },
+                async saveOrder() {
+                    const orderItems = this.foods.filter(f => f.quantity > 0).map(f => {
+                        // 提取价格中的数字部分
+                        const priceStr = String(f.price);
+                        let numericPrice = priceStr;
+                        
+                        // 尝试提取价格中的数字
+                        const matches = priceStr.match(/(\d+[,.]\d+|\d+)/);
+                        if (matches && matches.length > 0) {
+                            numericPrice = matches[0].replace(',', '.');
+                        }
+                        
+                        return {
+                            food_id: f.id,
+                            food_name: f.name,
+                            quantity: f.quantity,
+                            price: numericPrice  // 发送提取后的纯数字价格
+                        };
+                    });
+                    
+                    if (orderItems.length === 0) {
+                        alert('Bitte wählen Sie mindestens ein Gericht aus');
+                        return;
+                    }
+                    
+                    console.log("Bestellung wird vorbereitet:", orderItems);
+                    
+                    const orderData = {
+                        user_id: this.currentUser.id,
+                        items: orderItems
+                    };
+                    
+                    try {
+                        console.log("Bestelldaten werden gesendet:", orderData);
+                        const response = await fetch('/api/orders', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(orderData)
+                        });
+                        
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            console.error("Fehler beim Speichern der Bestellung:", response.status, errorData);
+                            throw new Error(errorData.error || 'Fehler beim Speichern der Bestellung');
+                        }
+                        
+                        const result = await response.json();
+                        console.log("Ergebnis der Bestellspeicherung:", result);
+                        
+                        alert('Bestellung erfolgreich gespeichert!');
+                        
+                        // 更新当前用户订单显示
+                        await this.loadCurrentUserOrders();
+                        
+                        // 清空当前选择
+                        this.foods.forEach(f => f.quantity = 0);
+                        this.updateTotal();
+                    } catch (error) {
+                        console.error('Fehler beim Speichern der Bestellung:', error);
+                        alert(`Fehler beim Speichern der Bestellung: ${error.message || 'Unbekannter Fehler'}`);
+                    }
+                },
+                async showAllOrders() {
+                    this.showOrdersModal = true;
+                    this.loading = true;
+                    
+                    try {
+                        console.log("Alle Bestellungen werden geladen");
+                        const response = await fetch('/api/all-orders');
+                        
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            console.error("API-Fehler:", response.status, errorText);
+                            throw new Error(`Anfrage fehlgeschlagen: ${response.status} ${errorText}`);
+                        }
+                        
+                        const data = await response.json();
+                        console.log("Erhaltene Originaldaten:", data);
+                        
+                        this.allOrders = data.users || [];
+                    } catch (error) {
+                        console.error('Fehler beim Abrufen der Bestellungen:', error);
+                        alert('Bestellungen konnten nicht geladen werden. Bitte versuchen Sie es später erneut');
+                        this.allOrders = []; // 确保清空无效数据
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                async loadCurrentUserOrders() {
+                    if (!this.currentUser) return;
+                    
+                    try {
+                        console.log(`Bestellungen für Benutzer ${this.currentUser.id} werden geladen`);
+                        const response = await fetch(`/api/user-orders/${this.currentUser.id}`);
+                        if (!response.ok) {
+                            throw new Error('Fehler beim Laden der Bestellungen');
+                        }
+                        
+                        const data = await response.json();
+                        console.log("Benutzerdaten:", data);
+                        
+                        this.currentUserOrders = data.orders || [];
+                        this.currentUserTotal = data.total || 0;
+                    } catch (error) {
+                        console.error('Fehler beim Laden der Benutzerbestellungen:', error);
+                    }
+                },
+                checkPasswordAndSelectUser(user) {
+                    if (this.password === '001') {
+                        this.passwordError = false;
+                        this.selectUser(user);
+                    } else {
+                        this.passwordError = true;
+                    }
+                },
+                async selectUser(user) {
+                    console.log("Benutzer ausgewählt:", user);
+                    this.currentUser = user;
+                    localStorage.setItem('selectedUserId', user.id);
+                    this.showUserSelection = false;
+                    await this.loadCurrentUserOrders();
+                },
+                backToUserSelection() {
+                    this.currentUser = null;
+                    this.showUserSelection = true;
+                    localStorage.removeItem('selectedUserId');
+                    // 重置所有菜品数量
+                    this.foods.forEach(f => f.quantity = 0);
+                    this.updateTotal();
+                    this.isEditingOrders = false;
+                    this.orderEdited = false;
+                },
+                startEditOrders() {
+                    this.isEditingOrders = true;
+                    this.orderEdited = false;
+                },
+                cancelEditOrders() {
+                    this.isEditingOrders = false;
+                },
+                checkOrderEdited() {
+                    this.orderEdited = true;
+                },
+                updateOrderQuantity(order, change) {
+                    order.quantity = Math.max(0, order.quantity + change);
+                    this.checkOrderEdited();
+                },
+                calculateUserOrdersTotal() {
+                    let total = 0;
+                    for (const order of this.currentUserOrders) {
+                        // 提取价格中的数字部分
+                        const priceStr = String(order.price);
+                        let numericPrice = 0;
+                        
+                        // 尝试提取价格中的数字
+                        const matches = priceStr.match(/(\d+[,.]\d+|\d+)/);
+                        if (matches && matches.length > 0) {
+                            // 将逗号替换为点，以便正确转换为数字
+                            const normalizedPrice = matches[0].replace(',', '.');
+                            numericPrice = parseFloat(normalizedPrice);
+                        }
+                        
+                        total += numericPrice * order.quantity;
+                    }
+                    // 使用德语格式，用逗号替代点号
+                    return `€${total.toFixed(2).replace('.', ',')}`;
+                },
+                async saveModifiedOrders() {
+                    const orderItems = this.currentUserOrders.map(order => ({
+                        food_id: order.food_id,
+                        food_name: order.food_name,
+                        price: order.price,
+                        quantity: order.quantity
+                    }));
+                    
+                    const orderData = {
+                        user_id: this.currentUser.id,
+                        items: orderItems
+                    };
+                    
+                    try {
+                        console.log("Geänderte Bestelldaten werden gesendet:", orderData);
+                        const response = await fetch('/api/edit-orders', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(orderData)
+                        });
+                        
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            console.error("Fehler beim Ändern der Bestellung:", response.status, errorData);
+                            throw new Error(errorData.message || 'Fehler beim Ändern der Bestellung');
+                        }
+                        
+                        const result = await response.json();
+                        console.log("Ergebnis der Bestellungsänderung:", result);
+                        
+                        alert('Bestellung erfolgreich geändert!');
+                        
+                        // 更新当前用户订单显示
+                        await this.loadCurrentUserOrders();
+                        
+                        // 重置编辑状态
+                        this.isEditingOrders = false;
+                        this.orderEdited = false;
+                    } catch (error) {
+                        console.error('Fehler beim Ändern der Bestellung:', error);
+                        alert(`Fehler beim Ändern der Bestellung: ${error.message || 'Unbekannter Fehler'}`);
+                    }
+                },
+                handleImageError(event, food) {
+                    console.error(`Fehler beim Laden des Gerichtbildes - Name: "${food.name}", ID: ${food.id}`);
+                    console.error(`Fehlgeschlagene Bild-URL: "${food.image}"`);
+                    
+                    // 检查路径问题
+                    let imagePath = food.image;
+                    if (!imagePath.startsWith('/static/') && !imagePath.startsWith('http')) {
+                        console.log(`Bildpfad könnte falsch sein, /static/ Präfix wird hinzugefügt`);
+                        imagePath = '/static/' + imagePath;
+                        console.log(`Korrigierter Pfad: ${imagePath}`);
+                        event.target.src = imagePath;
+                    } else {
+                        // 使用默认备用图片
+                        console.log(`Standard-Fallback-Bild wird verwendet: /static/custard_bao.jpg`);
+                        event.target.src = '/static/custard_bao.jpg'; 
+                    }
+                    
+                    // 在控制台显示更详细的错误信息
+                    console.log("Bilddetails:", {
+                        Gerichtname: food.name,
+                        GerichtID: food.id,
+                        Originalpfad: food.image
+                    });
+                },
+                calculateItemTotal(food) {
+                    // 提取价格中的数字部分
+                    const priceStr = String(food.price);
+                    let numericPrice = 0;
+                    
+                    // 尝试提取价格中的数字
+                    const matches = priceStr.match(/(\d+[,.]\d+|\d+)/);
+                    if (matches && matches.length > 0) {
+                        // 将逗号替换为点，以便正确转换为数字
+                        const normalizedPrice = matches[0].replace(',', '.');
+                        numericPrice = parseFloat(normalizedPrice);
+                    }
+                    
+                    const total = numericPrice * food.quantity;
+                    // 使用德语格式，用逗号替代点号
+                    return `€${total.toFixed(2).replace('.', ',')}`;
+                },
+                calculateItemSubtotal(order) {
+                    // 提取价格中的数字部分
+                    const priceStr = String(order.price);
+                    let numericPrice = 0;
+                    
+                    // 尝试提取价格中的数字
+                    const matches = priceStr.match(/(\d+[,.]\d+|\d+)/);
+                    if (matches && matches.length > 0) {
+                        // 将逗号替换为点，以便正确转换为数字
+                        const normalizedPrice = matches[0].replace(',', '.');
+                        numericPrice = parseFloat(normalizedPrice);
+                    }
+                    
+                    const total = numericPrice * order.quantity;
+                    // 使用德语格式，用逗号替代点号
+                    return `€${total.toFixed(2).replace('.', ',')}`;
+                },
+                formatCurrency(value) {
+                    // 确保value是数字
+                    const number = typeof value === 'number' ? value : parseFloat(value) || 0;
+                    // 格式化为德语格式：保留两位小数，使用逗号作为小数分隔符
+                    return `€${number.toFixed(2).replace('.', ',')}`;
+                },
+            }
+        });
+
+        app.mount('#app');
+    </script>
+</body>
+</html> 

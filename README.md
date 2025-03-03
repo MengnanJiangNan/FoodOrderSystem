@@ -9,49 +9,119 @@ app_file: app.py
 pinned: false
 ---
 
-# 点餐系统
+# Food Order System
 
-这是一个简单的点餐系统，使用 Flask 作为后端，提供以下功能：
+A web-based food ordering system built with Flask and Vue.js, designed for managing breakfast orders in a group setting.
 
-- 显示菜单
-- 添加订单
-- 查看订单历史
-- 修改订单
+## Features
 
-## API 接口
+- 🔐 Password-protected user access
+- 👥 User management system
+  - View existing users
+  - Add new users dynamically
+- 🍽️ Menu management
+  - Display food items with images
+  - Show prices and descriptions
+- 🛒 Order management
+  - Place new orders
+  - Edit existing orders
+  - View order history
+- 💶 Price calculation
+  - Real-time total calculation
+  - Per-user order summary
+- 🌐 Multi-language support
+  - German interface
+- 📱 Responsive design
+  - Works on both desktop and mobile devices
 
-- `/api/menu` - 获取菜单
-- `/api/users` - 获取用户列表
-- `/api/orders` - 获取/添加订单
-- `/api/user-orders/<user_id>` - 获取指定用户的订单
-- `/api/all-orders` - 获取所有订单
-- `/api/edit-orders` - 修改订单
+## Tech Stack
 
-## 部署说明
+- Backend:
+  - Python 3.9+
+  - Flask
+  - Pandas (for data management)
+- Frontend:
+  - Vue.js 3
+  - Bootstrap 5
+  - HTML5/CSS3
+- Data Storage:
+  - Excel files (food_orders.xlsx, menu_data.xlsx)
 
-应用使用 Flask 作为 Web 框架，使用 pandas 处理数据，数据存储在 Excel 文件中。
+## Installation
 
-环境要求：
-- Python 3.9+
-- Flask 3.0+
-- pandas 2.0+
-- gunicorn 20.1+
+1. Clone the repository:
+```bash
+git clone https://github.com/MengnanJiangNan/FoodOrderSystem.git
+cd FoodOrderSystem
+```
 
-## 使用方法
+2. Create and activate a Python virtual environment:
+```bash
+# Using conda
+conda create -n order-system python=3.9
+conda activate order-system
 
-访问应用首页即可开始使用点餐系统。系统会自动初始化必要的数据文件。
+# Or using venv
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
 
-## 技术栈
+3. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
 
-- Python 3.9+
-- Gradio 4.0+
-- Pandas 2.0+
-- OpenPyXL 3.0+
+## Usage
 
-本项目已部署在Gradio Space上，可以直接访问使用。
+1. Start the application:
+```bash
+python app.py
+```
 
-如需本地运行：
+2. Open your web browser and navigate to:
+```
+http://localhost:7860
+```
 
-1. 克隆仓库
-2. 安装依赖：`pip install -r requirements.txt`
-3. 运行应用：`python app.py`
+3. Enter the system password to access the user selection screen
+
+4. Select an existing user or create a new one
+
+5. Start placing your orders!
+
+## Data Structure
+
+The system uses two Excel files for data storage:
+
+### food_orders.xlsx
+- Sheet 'users': Stores user information
+  - id: Unique user identifier
+  - name: User name
+- Sheet 'orders': Stores order information
+  - user_id: Reference to user
+  - food_id: Reference to menu item
+  - quantity: Number of items ordered
+  - price: Price per item
+  - subtotal: Total price for this item
+
+### menu_data.xlsx
+- Stores menu items information
+  - id: Unique item identifier
+  - name: Item name
+  - price: Item price
+  - image: Path to item image
+  - description: Item description
+
+## Development
+
+The project is actively maintained on both GitHub and Hugging Face:
+- GitHub: https://github.com/MengnanJiangNan/FoodOrderSystem
+- Hugging Face: https://huggingface.co/spaces/mengnanjiang/Order_System
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+This project was created as a practical solution for managing group breakfast orders. Special thanks to all contributors and users who have provided valuable feedback.

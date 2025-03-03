@@ -1,14 +1,3 @@
----
-title: Order System
-emoji: 🍽️
-colorFrom: blue
-colorTo: green
-sdk: docker
-sdk_version: "latest"
-app_file: app.py
-pinned: false
----
-
 # Food Order System
 
 A web-based food ordering system built with Flask and Vue.js, designed for managing breakfast orders in a group setting.
@@ -31,8 +20,6 @@ A web-based food ordering system built with Flask and Vue.js, designed for manag
   - Per-user order summary
 - 🌐 Multi-language support
   - German interface
-- 📱 Responsive design
-  - Works on both desktop and mobile devices
 
 ## Tech Stack
 
@@ -84,6 +71,7 @@ http://localhost:7860
 ```
 
 3. Enter the system password to access the user selection screen
+   - Default password: `001`
 
 4. Select an existing user or create a new one
 

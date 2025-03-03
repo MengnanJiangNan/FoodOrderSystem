@@ -147,8 +147,11 @@ def create_interface():
 # 初始化数据
 init_excel_files()
 
-# 创建并启动接口
+# 创建Gradio界面
 demo = create_interface()
+
+# 创建WSGI应用程序入口点
+app = demo.app
 
 if __name__ == "__main__":
     demo.launch(server_name="0.0.0.0", server_port=7860)

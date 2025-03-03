@@ -17,6 +17,49 @@
         input[type=number] {
             -moz-appearance: textfield;
         }
+        
+        /* 用户选择界面的滚动区域样式 */
+        .user-selection-scroll {
+            max-height: calc(100vh - 300px);
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+        
+        /* 自定义滚动条样式 */
+        .user-selection-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .user-selection-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        .user-selection-scroll::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+        
+        .user-selection-scroll::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* 固定头部样式 */
+        .fixed-header {
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 1000;
+            padding: 15px 0;
+            margin: -15px 0 15px 0;
+        }
+        
+        /* 响应式高度调整 */
+        @media (max-height: 600px) {
+            .user-selection-scroll {
+                max-height: calc(100vh - 200px);
+            }
+        }
     </style>
 </head>
 <body>
@@ -29,34 +72,38 @@
                         <h3 class="mb-0 text-center">Willkommen beim Bestellsystem</h3>
                     </div>
                     <div class="card-body">
-                        <div class="text-center mb-4">
-                            <p class="mb-1">Organisator: Yanyongfang</p>
-                            <p class="mb-3">Frühstück</p>
-                        </div>
-                        
-                        <h4 class="text-center mb-4">Bitte wählen Sie einen Benutzer</h4>
-                        
-                        <div class="mb-3">
-                            <label for="password" class="form-label">Passwort</label>
-                            <input type="password" class="form-control" id="password" v-model="password" 
-                                  placeholder="Bitte geben Sie das Passwort ein">
-                            <div class="text-danger mt-1" v-if="passwordError">
-                                Falsches Passwort. Bitte versuchen Sie es erneut.
+                        <div class="fixed-header">
+                            <div class="text-center mb-4">
+                                <p class="mb-1">Organisator: Yanyongfang</p>
+                                <p class="mb-3">Frühstück</p>
+                            </div>
+                            
+                            <h4 class="text-center mb-4">Bitte wählen Sie einen Benutzer</h4>
+                            
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Passwort</label>
+                                <input type="password" class="form-control" id="password" v-model="password" 
+                                      placeholder="Bitte geben Sie das Passwort ein">
+                                <div class="text-danger mt-1" v-if="passwordError">
+                                    Falsches Passwort. Bitte versuchen Sie es erneut.
+                                </div>
                             </div>
                         </div>
                         
-                        <div class="d-grid gap-2">
-                            <button v-for="user in users" :key="user.id" 
-                                    class="btn btn-outline-primary btn-lg py-3"
-                                    style="font-size: 0.9rem;"
-                                    @click="checkPasswordAndSelectUser(user)"
-                                    :disabled="!password">
-                                ${user.name}$
-                            </button>
-                        </div>
-                        
-                        <div v-if="users.length === 0" class="alert alert-warning text-center mt-3">
-                            Keine Benutzerdaten vorhanden. Bitte fügen Sie Benutzer in der Datei food_orders.xlsx hinzu
+                        <div class="user-selection-scroll">
+                            <div class="d-grid gap-2">
+                                <button v-for="user in users" :key="user.id" 
+                                        class="btn btn-outline-primary btn-lg py-3"
+                                        style="font-size: 0.9rem;"
+                                        @click="checkPasswordAndSelectUser(user)"
+                                        :disabled="!password">
+                                    ${user.name}$
+                                </button>
+                            </div>
+                            
+                            <div v-if="users.length === 0" class="alert alert-warning text-center mt-3">
+                                Keine Benutzerdaten vorhanden. Bitte fügen Sie Benutzer in der Datei food_orders.xlsx hinzu
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -99,6 +99,14 @@
                                         :disabled="!password">
                                     ${user.name}$
                                 </button>
+                                
+                                <!-- 添加新用户按钮 -->
+                                <button class="btn btn-success btn-lg py-3"
+                                        style="font-size: 0.9rem;"
+                                        @click="showAddUserDialog"
+                                        :disabled="!password">
+                                    + Neuen Benutzer hinzufügen
+                                </button>
                             </div>
                             
                             <div v-if="users.length === 0" class="alert alert-warning text-center mt-3">
@@ -109,6 +117,33 @@
                 </div>
             </div>
         </div>
+
+        <!-- 添加新用户对话框 -->
+        <div class="modal fade" :class="{ show: showAddUserModal }" 
+             tabindex="-1" :style="{ display: showAddUserModal ? 'block' : 'none' }">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Neuen Benutzer hinzufügen</h5>
+                        <button type="button" class="btn-close" @click="closeAddUserDialog"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="newUserName" class="form-label">Benutzername</label>
+                            <input type="text" class="form-control" id="newUserName" 
+                                   v-model="newUserName" placeholder="Bitte geben Sie den Benutzernamen ein">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" @click="closeAddUserDialog">Abbrechen</button>
+                        <button type="button" class="btn btn-primary" @click="addNewUser" 
+                                :disabled="!newUserName">Bestätigen</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-backdrop fade" :class="{ show: showAddUserModal }" 
+             v-if="showAddUserModal"></div>
 
         <!-- 主界面 - 当用户已选择 -->
         <div v-if="!showUserSelection">
@@ -330,6 +365,8 @@
                     formattedTotalAmount: '',
                     password: '',
                     passwordError: false,
+                    showAddUserModal: false,
+                    newUserName: '',
                 }
             },
             async mounted() {
@@ -715,6 +752,42 @@
                     const number = typeof value === 'number' ? value : parseFloat(value) || 0;
                     // 格式化为德语格式：保留两位小数，使用逗号作为小数分隔符
                     return `€${number.toFixed(2).replace('.', ',')}`;
+                },
+                showAddUserDialog() {
+                    this.showAddUserModal = true;
+                },
+                closeAddUserDialog() {
+                    this.showAddUserModal = false;
+                },
+                async addNewUser() {
+                    try {
+                        const response = await fetch('/api/add-user', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ name: this.newUserName })
+                        });
+                        
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            alert(`Fehler beim Hinzufügen des Benutzers: ${errorData.message || 'Unbekannter Fehler'}`);
+                            return;
+                        }
+                        
+                        const result = await response.json();
+                        console.log("Neuer Benutzer hinzugefügt:", result);
+                        
+                        // 刷新用户列表
+                        await this.loadUsers();
+                        
+                        // 清空输入框并关闭对话框
+                        this.newUserName = '';
+                        this.closeAddUserDialog();
+                        
+                        alert('Benutzer wurde erfolgreich hinzugefügt!');
+                    } catch (error) {
+                        console.error('Fehler beim Hinzufügen des Benutzers:', error);
+                        alert(`Fehler beim Hinzufügen des Benutzers: ${error.message || 'Unbekannter Fehler'}`);
+                    }
                 },
             }
         });

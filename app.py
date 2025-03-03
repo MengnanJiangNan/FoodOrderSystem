@@ -229,6 +229,47 @@ def edit_orders():
             'message': f"❌ 修改订单失败: {str(e)}"
         }), 400
 
+@app.route('/api/add-user', methods=['POST'])
+def add_user():
+    """添加新用户API"""
+    try:
+        data = request.json
+        new_user_name = data['name']
+
+        # 读取现有用户
+        users_df = pd.read_excel(USERS_EXCEL_FILE, sheet_name='users')
+        
+        # 生成新用户ID (确保转换为Python原生整数)
+        new_user_id = 1 if users_df.empty else int(users_df['id'].max() + 1)
+        
+        # 添加新用户
+        new_user = {
+            'id': new_user_id,
+            'name': new_user_name
+        }
+        users_df = pd.concat([users_df, pd.DataFrame([new_user])], ignore_index=True)
+        
+        # 保存更新后的用户列表
+        with pd.ExcelWriter(USERS_EXCEL_FILE, mode='a', if_sheet_exists='replace') as writer:
+            users_df.to_excel(writer, sheet_name='users', index=False)
+            # 保持orders sheet不变
+            orders_df = pd.read_excel(USERS_EXCEL_FILE, sheet_name='orders')
+            orders_df.to_excel(writer, sheet_name='orders', index=False)
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Benutzer erfolgreich hinzugefügt',
+            'user': {
+                'id': int(new_user_id),  # 确保ID是Python原生整数
+                'name': new_user_name
+            }
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f"Fehler beim Hinzufügen des Benutzers: {str(e)}"
+        }), 400
+
 # 初始化数据
 init_excel_files()
 

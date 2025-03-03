@@ -64,8 +64,37 @@
 </head>
 <body>
     <div id="app" class="container py-4">
+        <!-- 密码验证界面 -->
+        <div v-if="!passwordVerified" class="row justify-content-center">
+            <div class="col-md-6 col-lg-4">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h3 class="mb-0 text-center">Willkommen beim Bestellsystem</h3>
+                    </div>
+                    <div class="card-body">
+                        <h4 class="text-center mb-4">Bitte geben Sie das Passwort ein</h4>
+                        
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Passwort</label>
+                            <input type="password" class="form-control" id="password" v-model="password" 
+                                  placeholder="Passwort eingeben">
+                            <div class="text-danger mt-1" v-if="passwordError">
+                                Falsches Passwort. Bitte versuchen Sie es erneut.
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button class="btn btn-primary" @click="verifyPassword">
+                                Einloggen
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <!-- 用户选择界面 -->
-        <div v-if="showUserSelection" class="row justify-content-center">
+        <div v-if="passwordVerified && showUserSelection" class="row justify-content-center">
             <div class="col-md-8 col-lg-6">
                 <div class="card shadow">
                     <div class="card-header bg-primary text-white">
@@ -74,15 +103,6 @@
                     <div class="card-body">
                         <div class="fixed-header">
                             <h4 class="text-center mb-4">Bitte wählen Sie einen Benutzer</h4>
-                            
-                            <div class="mb-3">
-                                <label for="password" class="form-label">Passwort</label>
-                                <input type="password" class="form-control" id="password" v-model="password" 
-                                      placeholder="Bitte geben Sie das Passwort ein">
-                                <div class="text-danger mt-1" v-if="passwordError">
-                                    Falsches Passwort. Bitte versuchen Sie es erneut.
-                                </div>
-                            </div>
                         </div>
                         
                         <div class="user-selection-scroll">
@@ -90,16 +110,14 @@
                                 <button v-for="user in users" :key="user.id" 
                                         class="btn btn-outline-primary btn-lg py-3"
                                         style="font-size: 0.9rem;"
-                                        @click="checkPasswordAndSelectUser(user)"
-                                        :disabled="!password">
+                                        @click="selectUser(user)">
                                     ${user.name}$
                                 </button>
                                 
                                 <!-- 添加新用户按钮 -->
                                 <button class="btn btn-success btn-lg py-3"
                                         style="font-size: 0.9rem;"
-                                        @click="showAddUserDialog"
-                                        :disabled="!password">
+                                        @click="showAddUserDialog">
                                     + Neuen Benutzer hinzufügen
                                 </button>
                             </div>
@@ -137,7 +155,7 @@
              v-if="showAddUserModal"></div>
 
         <!-- 主界面 - 当用户已选择 -->
-        <div v-if="!showUserSelection">
+        <div v-if="passwordVerified && !showUserSelection">
             <!-- 顶部导航栏 -->
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h2>Willkommen, ${currentUser ? currentUser.name : ''}$</h2>
@@ -358,6 +376,7 @@
                     passwordError: false,
                     showAddUserModal: false,
                     newUserName: '',
+                    passwordVerified: false,
                 }
             },
             async mounted() {
@@ -578,15 +597,7 @@
                         console.error('Fehler beim Laden der Benutzerbestellungen:', error);
                     }
                 },
-                checkPasswordAndSelectUser(user) {
-                    if (this.password === '001') {
-                        this.passwordError = false;
-                        this.selectUser(user);
-                    } else {
-                        this.passwordError = true;
-                    }
-                },
-                async selectUser(user) {
+                selectUser(user) {
                     console.log("Benutzer ausgewählt:", user);
                     this.currentUser = user;
                     localStorage.setItem('selectedUserId', user.id);
@@ -778,6 +789,14 @@
                     } catch (error) {
                         console.error('Fehler beim Hinzufügen des Benutzers:', error);
                         alert(`Fehler beim Hinzufügen des Benutzers: ${error.message || 'Unbekannter Fehler'}`);
+                    }
+                },
+                async verifyPassword() {
+                    if (this.password === '001') {
+                        this.passwordError = false;
+                        this.passwordVerified = true;
+                    } else {
+                        this.passwordError = true;
                     }
                 },
             }

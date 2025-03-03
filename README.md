@@ -1,3 +1,14 @@
+---
+title: Order System
+emoji: 🍽️
+colorFrom: blue
+colorTo: green
+sdk: docker
+sdk_version: "latest"
+app_file: app.py
+pinned: false
+---
+
 # Food Order System
 
 A web-based food ordering system built with Flask and Vue.js, designed for managing breakfast orders in a group setting.
